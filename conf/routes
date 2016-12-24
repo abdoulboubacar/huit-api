@@ -1,0 +1,19 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET         /                                                                          controllers.Application.index()
+POST        /api/game/:gameName                                                        controllers.Api.getGame(gameName:String)
+POST        /api/game/:gameName/player/add/:name                                       controllers.Api.addPlayer(gameName:String, name:String)
+POST        /api/game/:gameName/player/remove/:playerName                              controllers.Api.removePlayer(gameName:String, playerName:String)
+POST        /api/game/:gameName/removelast                                             controllers.Api.deleteLastLine(gameName:String)
+POST        /api/game/:gameName/playagain                                              controllers.Api.playAgain(gameName:String)
+POST        /api/game/:gameName/player/updatescore/:playerName/:score                  controllers.Api.updatePlayerScore(gameName:String, playerName:String, score:Long)
+POST        /api/game/:gameName/player/updatesuperscore/:playerName/:superScore        controllers.Api.updatePlayerSuperScore(gameName:String, playerName:String, superScore:Long)
+
+
+# Map static resources from the /public folder to the /assets URL path
+GET         /assets/*file                                                              controllers.Assets.at(path="/public", file)
+
+    
