@@ -14,21 +14,15 @@ public class Api extends Controller {
 
     private static final Long MAX_GAME = 101L;
     private static final Long BONUS = 10L;
-
-    private void allowCrosHeaders() {
-        response().setHeader("Access-Control-Allow-Origin", "*");
-        response().setHeader("Allow", "*");
-        response().setHeader("Access-Control-Allow-Methods", "POST, PATCH, GET, PUT, DELETE, OPTIONS");
-        response().setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Referer, User-Agent");
-    }
+    private static final Long MAX_FIRST_GAME = 50L;
 
     public Result getGame(String gameName) {
-        allowCrosHeaders();
         Game game = Game.findByName(gameName);
         if (game == null) {
             game = new Game(new Date(), gameName);
             game.save();
         }
+
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
@@ -39,7 +33,7 @@ public class Api extends Controller {
         }
         game.getPlayers().add(new Player(name));
         game.save();
-        allowCrosHeaders();
+
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
@@ -50,9 +44,8 @@ public class Api extends Controller {
         }
         game.getPlayers().stream().filter(player -> player.getName().equals(playerName)).forEach(player -> player.delete());
         game.getPlayers().removeIf(player -> player.getName().equals(playerName));
-
         game.save();
-        allowCrosHeaders();
+
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
@@ -81,12 +74,16 @@ public class Api extends Controller {
             player.setValid(false);
         }
 
+        if (player.getScore().isEmpty() && score >= MAX_FIRST_GAME) {
+            //le joueur dont les points au premier jeu dépassent $MAX_FIRST_GAME est éliminé
+            player.setValid(false);
+        }
+
         player.getScore().add(score);
         player.save();
         game.save();
-
         tryClosingGame(game);
-        allowCrosHeaders();
+
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
@@ -100,20 +97,12 @@ public class Api extends Controller {
             player.getScore().remove(max - 1);
             if (player.getTotal() < MAX_GAME) {
                 player.setValid(true); //on remet le joueur dans le jeu
-                if (!player.getSuperScore().isEmpty()) {
-                    player.getSuperScore().remove(player.getSuperScore().size() -1);
-                }
             }
-            player.save();
-        });
-        game.getPlayers().stream().filter(player -> player.isWinner()).forEach(player -> {
-            player.setWinner(false);
             player.save();
         });
 
         game.save();
 
-        allowCrosHeaders();
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
@@ -127,7 +116,6 @@ public class Api extends Controller {
         player.save();
         game.save();
 
-        allowCrosHeaders();
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
@@ -142,7 +130,6 @@ public class Api extends Controller {
             player.save();
         });
         game.save();
-        allowCrosHeaders();
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
@@ -158,15 +145,29 @@ public class Api extends Controller {
 
             notValidPlayers.stream().forEach(player -> {
                 player.getSuperScore().add((long) notValidPlayers.indexOf(player));
+                player.save();
+            });
+
+            game.getPlayers().stream().filter(player -> player.isValid()).forEach(gamePartWinner -> {
+                gamePartWinner.setValid(false);
+                gamePartWinner.getSuperScore().add((long) (game.getPlayers().size()-1));
+                gamePartWinner.save();
+            });
+
+            List<Player> players = game.getPlayers().stream().sorted((p1, p2) ->
+                    (int)(p1.getSuperScore().stream().mapToLong(aLong -> aLong.longValue()).sum()
+            - p2.getSuperScore().stream().mapToLong(aLong -> aLong.longValue()).sum())).collect(Collectors.toList());
+
+            players.stream().peek(winner -> {
+                winner.setWinner(true);
+                winner.save();
+            });
+
+            players.stream().forEach(player -> {
                 player.setWinner(false);
                 player.save();
             });
-            game.getPlayers().stream().filter(player -> player.isValid()).forEach(winner -> {
-                winner.setWinner(true);
-                winner.setValid(false);
-                winner.getSuperScore().add((long) (game.getPlayers().size()-1));
-                winner.save();
-            });
+
             game.save();
         }
     }

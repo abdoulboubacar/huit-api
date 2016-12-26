@@ -2,7 +2,13 @@ name := "huit-api"
 
 version := "1.0"
 
-lazy val `huit-api` = (project in file(".")).enablePlugins(PlayJava, PlayEbean)
+lazy val `huit-api` = (project in file(".")).enablePlugins(PlayJava, PlayEbean, DebianPlugin)
+
+maintainer in Linux := "Abdoul Boubacar <arbmainassara@gmail.com>"
+
+packageSummary in Linux := "API REST pour la gestion de la table du huit américain"
+
+packageDescription := "API REST pour la gestion de la table du huit américain"
 
 scalaVersion := "2.11.7"
 
