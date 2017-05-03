@@ -3,9 +3,7 @@ package models;
 import com.avaje.ebean.Model;
 import com.avaje.ebean.annotation.DbArray;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,9 +11,11 @@ import java.util.List;
  * Created by abdoulbou on 12/12/16.
  */
 @Entity
+@Table(name = "huit_player_table")
 public class Player extends Model {
 
     @Id
+    @GeneratedValue(strategy= GenerationType.AUTO)
     public Long id;
 
     @DbArray
@@ -33,12 +33,16 @@ public class Player extends Model {
     @Column
     private Boolean winner;
 
+    @Column
+    private Boolean distributor;
+
     public static Finder<Long, Player> find = new Finder<Long,Player>(Player.class);
 
     public Player(String name) {
         this.name = name;
         this.valid = true;
         this.winner = false;
+        this.distributor = false;
         setSuperScore(new ArrayList<Long>());
         setScore(new ArrayList<Long>());
     }
@@ -85,5 +89,13 @@ public class Player extends Model {
 
     public void setWinner(Boolean winner) {
         this.winner = winner;
+    }
+
+    public Boolean getDistributor() {
+        return distributor;
+    }
+
+    public void setDistributor(Boolean distributor) {
+        this.distributor = distributor;
     }
 }

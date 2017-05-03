@@ -16,7 +16,9 @@ libraryDependencies ++= Seq(
   javaJdbc,
   cache,
   javaWs,
-  "postgresql" % "postgresql" % "9.1-903.jdbc4"
+  filters,
+  "postgresql" % "postgresql" % "9.1-903.jdbc4",
+  "org.mindrot" % "jbcrypt" % "0.3m"
 )
 
 unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/test" )  

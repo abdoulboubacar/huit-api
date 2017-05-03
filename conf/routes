@@ -3,15 +3,23 @@
 # ~~~~
 
 # Home page
-GET           /                                                                          controllers.Application.index()
-GET           /swagger.json                                                              controllers.Application.index()
-POST          /api/game/:gameName                                                        controllers.Api.getGame(gameName:String)
-PUT           /api/game/:gameName/player/add/:name                                       controllers.Api.addPlayer(gameName:String, name:String)
-DELETE        /api/game/:gameName/player/remove/:playerName                              controllers.Api.removePlayer(gameName:String, playerName:String)
-PATCH         /api/game/:gameName/removelast                                             controllers.Api.deleteLastLine(gameName:String)
-POST          /api/game/:gameName/playagain                                              controllers.Api.playAgain(gameName:String)
-PATCH         /api/game/:gameName/player/updatescore/:playerName/:score                  controllers.Api.updatePlayerScore(gameName:String, playerName:String, score:Long)
-PATCH         /api/game/:gameName/player/updatesuperscore/:playerName/:superScore        controllers.Api.updatePlayerSuperScore(gameName:String, playerName:String, superScore:Long)
+GET           /                                                                          controllers.SwaggerController.index()
+GET           /swagger.json                                                              controllers.SwaggerController.index()
+
+POST          /api/login                                                                 controllers.SecurityController.authenticate()
+GET           /api/logout                                                                controllers.SecurityController.logout()
+PUT           /api/register                                                              controllers.SecurityController.register()
+
+GET           /api/games                                                                 controllers.ApiController.getAllGames()
+GET           /api/game/:id                                                              controllers.ApiController.getGame(id:Long)
+PUT           /api/game/create                                                           controllers.ApiController.createGame()
+PUT           /api/game/:gameId/player/add                                               controllers.ApiController.addPlayer(gameId:Long)
+DELETE        /api/game/:gameId/player/remove/:playerId                                controllers.ApiController.removePlayer(gameId:Long, playerId:Long)
+DELETE        /api/game/:gameId/player/removeall                                       controllers.ApiController.removeAllPlayers(gameId:Long)
+PATCH         /api/game/:gameId/removelast                                             controllers.ApiController.deleteLastLine(gameId:String)
+POST          /api/game/:gameId/playagain                                              controllers.ApiController.playAgain(gameId:String)
+PATCH         /api/game/:gameId/player/updatescore/:playerName/:score                  controllers.ApiController.updatePlayerScore(gameId:String, playerName:String, score:Long)
+PATCH         /api/game/:gameId/player/updatesuperscore/:playerName/:superScore        controllers.ApiController.updatePlayerSuperScore(gameId:String, playerName:String, superScore:Long)
 
 
 

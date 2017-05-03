@@ -1,54 +1,105 @@
 package controllers;
 
 import com.google.common.net.MediaType;
+import form.GameForm;
+import form.LoginForm;
+import form.PlayerForm;
 import models.Game;
 import models.Player;
+import models.User;
+import play.data.Form;
+import play.data.FormFactory;
 import play.libs.Json;
 import play.mvc.*;
 
+import javax.inject.Inject;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-public class Api extends Controller {
+public class ApiController extends Controller {
 
     private static final Long MAX_GAME = 101L;
     private static final Long BONUS = 10L;
     private static final Long MAX_FIRST_GAME = 50L;
 
-    public Result getGame(String gameName) {
-        Game game = Game.findByName(gameName);
-        if (game == null) {
-            game = new Game(new Date(), gameName);
-            game.save();
-        }
+    @Inject
+    private FormFactory formFactory;
 
-        return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
+    public Result getGame(Long id) {
+        return ok(Json.toJson(Game.find.byId(id))).as(MediaType.JSON_UTF_8.toString());
     }
 
-    public Result addPlayer(String gameName, String name) {
-        Game game = Game.findByName(gameName);
+    public Result getAllGames() {
+        return ok(Json.toJson(Game.find.all())).as(MediaType.JSON_UTF_8.toString());
+    }
+
+    @Security.Authenticated(Secured.class)
+    public Result createGame() {
+        Form<GameForm> gameForm = formFactory.form(GameForm.class).bindFromRequest();
+        if (gameForm.hasErrors()) {
+            return badRequest(gameForm.errorsAsJson());
+        }
+
+        Game game = new Game(gameForm.get().getName());
+        game.setOwner(SecurityController.getUser());
+        game.save();
+
+        return created(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
+    }
+
+    @Security.Authenticated(Secured.class)
+    public Result addPlayer(Long gameId) {
+        Game game = Game.find.byId(gameId);
         if (game == null) {
             return notFound();
         }
-        game.getPlayers().add(new Player(name));
+        if (!game.getOwner().equals(SecurityController.getUser())) {
+            return unauthorized();
+        }
+        Form<PlayerForm> playerForm = formFactory.form(PlayerForm.class).bindFromRequest();
+        Player player = new Player(playerForm.get().getName());
+        game.getPlayers().add(player);
         game.save();
 
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
-    public Result removePlayer(String gameName, String playerName) {
-        Game game = Game.findByName(gameName);
+    @Security.Authenticated(Secured.class)
+    public Result removePlayer(Long gameId, Long playerId) {
+        Game game = Game.find.byId(gameId);
         if (game == null) {
             return notFound();
         }
-        game.getPlayers().stream().filter(player -> player.getName().equals(playerName)).forEach(player -> player.delete());
-        game.getPlayers().removeIf(player -> player.getName().equals(playerName));
+        if (!game.getOwner().equals(SecurityController.getUser())) {
+            return unauthorized();
+        }
+        game.getPlayers().stream().filter(player -> player.id.equals(playerId)).forEach(player -> player.delete()); // remove db
+        game.getPlayers().removeIf(player -> player.id.equals(playerId)); // remove into collection
         game.save();
 
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
+    @Security.Authenticated(Secured.class)
+    public Result removeAllPlayers(Long gameId) {
+        Game game = Game.find.byId(gameId);
+        if (game == null) {
+            return notFound();
+        }
+        if (!game.getOwner().equals(SecurityController.getUser())) {
+            return unauthorized();
+        }
+        game.getPlayers().stream().forEach(player -> player.delete());
+        game.getPlayers().clear();
+        game.save();
+
+        return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
+    }
+
+    @Security.Authenticated(Secured.class)
     public Result updatePlayerScore(String gameName, String playerName, Long score) {
         Game game = Game.findByName(gameName);
         if (game == null) {
@@ -87,6 +138,7 @@ public class Api extends Controller {
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
+    @Security.Authenticated(Secured.class)
     public Result deleteLastLine(String gameName) {
         Game game = Game.findByName(gameName);
         Integer max = game.getPlayers().stream().max((player, t1) -> player.getScore().size() - t1.getScore().size()).get().getScore().size();
@@ -106,6 +158,7 @@ public class Api extends Controller {
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
+    @Security.Authenticated(Secured.class)
     public Result updatePlayerSuperScore(String gameName, String playerName, Long superscore) {
         Game game = Game.findByName(gameName);
         if (game == null) {
@@ -119,6 +172,7 @@ public class Api extends Controller {
         return ok(Json.toJson(game)).as(MediaType.JSON_UTF_8.toString());
     }
 
+    @Security.Authenticated(Secured.class)
     public Result playAgain(String gameName) {
         Game game = Game.findByName(gameName);
         if (game == null) {
@@ -150,13 +204,13 @@ public class Api extends Controller {
 
             game.getPlayers().stream().filter(player -> player.isValid()).forEach(gamePartWinner -> {
                 gamePartWinner.setValid(false);
-                gamePartWinner.getSuperScore().add((long) (game.getPlayers().size()-1));
+                gamePartWinner.getSuperScore().add((long) (game.getPlayers().size() - 1));
                 gamePartWinner.save();
             });
 
             List<Player> players = game.getPlayers().stream().sorted((p1, p2) ->
-                    (int)(p1.getSuperScore().stream().mapToLong(aLong -> aLong.longValue()).sum()
-            - p2.getSuperScore().stream().mapToLong(aLong -> aLong.longValue()).sum())).collect(Collectors.toList());
+                    (int) (p1.getSuperScore().stream().mapToLong(aLong -> aLong.longValue()).sum()
+                            - p2.getSuperScore().stream().mapToLong(aLong -> aLong.longValue()).sum())).collect(Collectors.toList());
 
             players.stream().peek(winner -> {
                 winner.setWinner(true);

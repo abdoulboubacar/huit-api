@@ -4,10 +4,7 @@ import com.avaje.ebean.ExpressionList;
 import com.avaje.ebean.Model;
 import play.data.validation.Constraints;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
+import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -16,9 +13,11 @@ import java.util.List;
  * Created by abdoulbou on 12/12/16.
  */
 @Entity
+@Table(name = "huit_game_table")
 public class Game extends Model {
 
     @Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
     public Long id;
 
     @OneToMany(cascade = CascadeType.ALL)
@@ -28,10 +27,14 @@ public class Game extends Model {
 
     private Date date;
 
+    @ManyToOne
+    @JoinColumn(name = "owner_id", referencedColumnName = "id")
+    private User owner;
+
     public static Finder<Long, Game> find = new Finder<Long,Game>(Game.class);
 
-    public Game(Date date, String name) {
-        this.date = date;
+    public Game(String name) {
+        this.date = new Date();
         this.name = name;
         this.players = new ArrayList<Player>();
     }
@@ -39,6 +42,14 @@ public class Game extends Model {
     public static Game findByName(String name) {
         ExpressionList<Game> res = find.where().eq("name", name);
         return res.findUnique();
+    }
+
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
     }
 
     public void addPlayer(Player player) {
